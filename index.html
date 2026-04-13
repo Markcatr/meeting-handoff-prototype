@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Handoffs — Orby Platform</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --bg-surface: #F9FAFB;
+    --bg-card: #FFFFFF;
+    --border: #E5E7EB;
+    --border-light: #F3F4F6;
+    --text: #111827;
+    --text-secondary: #374151;
+    --text-muted: #6B7280;
+    --text-faint: #9CA3AF;
+    --primary: #4F62D0;
+    --primary-bg: rgba(79,98,208,0.06);
+    --green: #059669;
+    --green-bg: rgba(5,150,105,0.06);
+    --green-light: rgba(5,150,105,0.10);
+    --amber: #D97706;
+    --amber-bg: rgba(217,119,6,0.06);
+    --amber-light: rgba(217,119,6,0.10);
+    --red: #DC2626;
+    --red-bg: rgba(220,38,38,0.05);
+    --red-light: rgba(220,38,38,0.10);
+    --blue: #2563EB;
+    --blue-bg: rgba(37,99,235,0.06);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-xs: 6px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: var(--bg-surface); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+  .page { max-width: 1400px; margin: 0 auto; padding: 32px 40px; }
+
+  /* Header */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
+  .page-header h1 { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .page-header p { font-size: 13px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+  .header-controls { display: flex; align-items: center; gap: 10px; }
+  .segment-select {
+    font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: var(--radius-xs);
+    border: 1px solid var(--border); background: var(--bg-card); color: var(--text);
+    cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px;
+  }
+  .date-range { font-size: 11px; color: var(--text-faint); font-weight: 500; padding: 7px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border); background: var(--bg-card); }
+
+  /* KPI Strip */
+  .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm); }
+  .kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-faint); margin-bottom: 8px; }
+  .kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .kpi-value.green { color: var(--green); }
+  .kpi-value.amber { color: var(--amber); }
+  .kpi-value.red { color: var(--red); }
+  .kpi-value.primary { color: var(--primary); }
+  .kpi-value.default { color: var(--text); }
+
+  /* Lift Banner */
+  .lift-banner {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--green-bg); border: 1px solid rgba(5,150,105,0.12);
+    border-radius: var(--radius); padding: 14px 20px; margin-bottom: 24px;
+  }
+  .lift-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--green-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .lift-icon svg { width: 18px; height: 18px; }
+  .lift-text strong { font-size: 13px; font-weight: 700; color: var(--green); }
+  .lift-text span { font-size: 12px; color: var(--text-secondary); }
+
+  /* Layout */
+  .two-col { display: grid; grid-template-columns: 1fr 340px; gap: 20px; margin-bottom: 24px; }
+
+  /* Table Card */
+  .table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-light); }
+  .table-header h3 { font-size: 13px; font-weight: 700; color: var(--text); }
+  .table-header .count { font-size: 11px; color: var(--text-faint); font-weight: 500; margin-left: 8px; }
+  .filter-tabs { display: flex; gap: 2px; background: var(--bg-surface); border-radius: var(--radius-xs); padding: 2px; }
+  .filter-tab { font-size: 11px; font-weight: 500; padding: 5px 12px; border-radius: 5px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; }
+  .filter-tab.active { background: var(--bg-card); color: var(--text); box-shadow: var(--shadow-sm); }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-faint); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border-light); background: var(--bg-surface); }
+  thead th:last-child { text-align: center; }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.1s; cursor: pointer; }
+  tbody tr:hover { background: rgba(79,98,208,0.02); }
+
+  .meeting-info { display: flex; flex-direction: column; gap: 2px; }
+  .meeting-prospect { font-size: 13px; font-weight: 600; color: var(--text); }
+  .meeting-company { font-size: 11px; color: var(--text-muted); }
+  .meeting-meta { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+
+  .rep-cell { display: flex; flex-direction: column; gap: 1px; }
+  .rep-name { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+  .rep-segment { font-size: 10px; color: var(--text-faint); }
+
+  .three-ps { display: flex; gap: 5px; flex-wrap: wrap; }
+  .p-tag { font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 4px; background: var(--primary-bg); color: var(--primary); white-space: nowrap; }
+  .p-tag.empty { background: var(--red-bg); color: var(--red); }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 100px; white-space: nowrap; }
+  .status-pill.complete { background: var(--green-light); color: var(--green); }
+  .status-pill.pending { background: var(--amber-light); color: var(--amber); }
+  .status-pill.overdue { background: var(--red-light); color: var(--red); }
+  .status-pill.no-3ps { background: var(--red-bg); color: var(--red); border: 1px solid rgba(220,38,38,0.12); }
+  .status-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .time-label { font-size: 10px; color: var(--text-faint); margin-top: 3px; text-align: center; }
+
+  /* Sidebar */
+  .sidebar-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .sidebar-header { padding: 16px 18px; border-bottom: 1px solid var(--border-light); }
+  .sidebar-header h3 { font-size: 13px; font-weight: 700; color: var(--text); }
+  .sidebar-header p { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+  .ae-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; border-bottom: 1px solid var(--border-light); }
+  .ae-row:last-child { border-bottom: none; }
+  .ae-info { display: flex; flex-direction: column; gap: 1px; }
+  .ae-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .ae-stats { font-size: 10px; color: var(--text-faint); }
+  .ae-rate { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* Insights Strip */
+  .insights-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .insight-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm); }
+  .insight-card h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 10px; }
+  .insight-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+  .insight-item:not(:last-child) { border-bottom: 1px solid var(--border-light); }
+  .insight-label { font-size: 12px; color: var(--text-secondary); }
+  .insight-value { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-faint); margin-bottom: 12px; margin-top: 8px; }
+
+  /* Expandable rows */
+  .expand-row { display: none; }
+  .expand-row.open { display: table-row; }
+  .expand-content { padding: 20px 24px; background: var(--bg-surface); }
+
+  /* Slack thread */
+  .slack-msg { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+  .slack-msg:last-child { border-bottom: none; }
+  .slack-avatar { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: white; }
+  .slack-avatar.bdr { background: #4F62D0; }
+  .slack-avatar.ae { background: #059669; }
+  .slack-avatar.ai { background: linear-gradient(135deg, #7C3AED, #4F62D0); }
+  .slack-avatar.hype { background: #D1D5DB; color: #6B7280; }
+  .slack-body { flex: 1; }
+  .slack-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .slack-name .time { font-size: 10px; color: var(--text-faint); font-weight: 400; margin-left: 6px; }
+  .slack-text { font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: 2px; }
+  .slack-text strong { color: var(--text); font-weight: 600; }
+  .slack-reactions { display: flex; gap: 4px; margin-top: 6px; }
+  .slack-reaction { font-size: 10px; padding: 2px 6px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); }
+
+  /* What-if: shows AE prep that SHOULD happen */
+  .should-happen { border-left: 3px solid var(--green); padding-left: 12px; margin-top: 12px; }
+  .should-happen-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--green); margin-bottom: 8px; }
+
+  /* Automation card */
+  .auto-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 20px; margin-top: 24px; }
+  .auto-card h3 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .auto-card > p { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .auto-steps { display: flex; gap: 0; margin-top: 16px; align-items: flex-start; }
+  .auto-step { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; padding: 0 8px; }
+  .auto-step::after { content: ''; position: absolute; top: 18px; right: -2px; width: 50%; height: 1px; background: var(--border); }
+  .auto-step:last-child::after { display: none; }
+  .auto-step::before { content: ''; position: absolute; top: 18px; left: -2px; width: 50%; height: 1px; background: var(--border); }
+  .auto-step:first-child::before { display: none; }
+  .step-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-bottom: 8px; position: relative; z-index: 1; }
+  .step-icon.slack { background: #4A154B; color: white; }
+  .step-icon.ai { background: linear-gradient(135deg, #7C3AED, #4F62D0); color: white; }
+  .step-icon.check { background: var(--green-light); color: var(--green); }
+  .step-icon.alert { background: var(--amber-light); color: var(--amber); font-size: 16px; }
+  .step-icon.track { background: var(--primary-bg); color: var(--primary); }
+  .auto-step .step-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+  .auto-step .step-desc { font-size: 10px; color: var(--text-faint); margin-top: 2px; line-height: 1.4; }
+  .auto-badge { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; background: var(--green-light); color: var(--green); margin-top: 4px; }
+
+
+  /* No-AE indicator */
+  .no-ae-banner { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius-xs); background: var(--red-bg); border: 1px solid rgba(220,38,38,0.1); margin-top: 10px; }
+  .no-ae-banner span { font-size: 11px; color: var(--red); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div>
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Meeting Handoffs</h1>
+      <p>BDR → AE prep compliance and conversion impact · Source: #new-emea-bdr-pipeline</p>
+    </div>
+    <div class="header-controls">
+      <select class="segment-select">
+        <option>All EMEA</option>
+        <option>EMEA Commercial</option>
+        <option>EMEA Key</option>
+        <option>EMEA Strategic</option>
+      </select>
+      <div class="date-range">Apr 1 – 10, 2026</div>
+    </div>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">Meetings Set</div>
+      <div class="kpi-value default">18</div>
+      <div class="kpi-sub">This month (10 days)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">3 Ps Posted</div>
+      <div class="kpi-value amber">56%</div>
+      <div class="kpi-sub">10 of 18 — 8 missing</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">AE Prep Posted</div>
+      <div class="kpi-value red">11%</div>
+      <div class="kpi-sub">2 of 18 within 48hrs</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">AE Acknowledged</div>
+      <div class="kpi-value red">17%</div>
+      <div class="kpi-sub">3 of 18 said anything</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">BDR-Sourced S0→S1</div>
+      <div class="kpi-value amber">34%</div>
+      <div class="kpi-sub">vs 61% AE-sourced</div>
+    </div>
+  </div>
+
+
+  <!-- Two Column -->
+  <div class="two-col">
+
+    <!-- Meeting Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <div style="display:flex;align-items:center">
+          <h3>Recent Handoffs</h3>
+          <span class="count">from #new-emea-bdr-pipeline</span>
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active">All</button>
+          <button class="filter-tab">No 3Ps</button>
+          <button class="filter-tab">AE Overdue</button>
+          <button class="filter-tab">Complete</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Meeting</th>
+            <th>BDR</th>
+            <th>AE</th>
+            <th>3 Ps</th>
+            <th style="text-align:center">AE Prep</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Row 1: Dan Watson → BAE Systems — has 3Ps, no AE prep -->
+          <tr onclick="toggleRow('r1')">
+            <td>
+              <div class="meeting-info">
+                <span class="meeting-prospect">Andy Webster</span>
+                <span class="meeting-company">BAE Systems · FTE 107,400</span>
+                <span class="meeting-meta">Apr 21 · Phone · Outbound</span>
+              </div>
+            </td>
+            <td><div class="rep-cell"><span class="rep-name">Dan Watson</span><span class="rep-segment">EMEA Strategic</span></div></td>
+            <td><div class="rep-cell"><span class="rep-name">Rabia Lukas</span></div></td>
+            <td>
+              <div class="three-ps">
+                <span class="p-tag">Process</span>
+                <span class="p-tag">Pain</span>
+                <span class="p-tag">Priorities</span>
+              </div>
+            </td>
+            <td style="text-align:center">
+              <span class="status-pill overdue"><span class="dot"></span> Overdue</span>
+              <div class="time-label">No AE response</div>
+            </td>
+          </tr>
+          <tr class="expand-row" id="r1">
+            <td colspan="5">
+              <div class="expand-content">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:10px">Thread from #new-emea-bdr-pipeline</div>
+                <div class="slack-msg">
+                  <div class="slack-avatar bdr">DW</div>
+                  <div class="slack-body">
+                    <div class="slack-name">Dan Watson <span class="time">Apr 10, 8:17 AM</span></div>
+                    <div class="slack-text">
+                      <strong>Process</strong><br>
+                      Using ServiceNow & Ivalua. Existing tools work well in isolation, but gaps in end-to-end flow. BAE is investing in ERP upgrades, looking for a more "connective workflow." A central systems/architecture team owns the tech strategy.<br><br>
+                      <strong>Pain</strong><br>
+                      Fragmentation across teams and systems, affecting end-to-end visibility and control. Ownership and handoffs between systems are unclear. Approvals and workflows can become disconnected.<br><br>
+                      <strong>Priorities</strong><br>
+                      Create a joined-up workflow layer that connects the process and reduces friction across the value chain.
+                    </div>
+                  </div>
+                </div>
+                <div class="slack-msg">
+                  <div class="slack-avatar hype">JP</div>
+                  <div class="slack-body">
+                    <div class="slack-name">Jamie Pickett <span class="time">8:40 AM</span></div>
+                    <div class="slack-text">gowaannn danny boy!!</div>
+                  </div>
+                </div>
+                <div class="slack-msg">
+                  <div class="slack-avatar hype">MM</div>
+                  <div class="slack-body">
+                    <div class="slack-name">Maggie Moran <span class="time">9:57 AM</span></div>
+                    <div class="slack-text">Let's goooo</div>
+                  </div>
+                </div>
+                <div class="slack-msg">
+                  <div class="slack-avatar hype">RV</div>
+                  <div class="slack-body">
+                    <div class="slack-name">Roque Versace <span class="time">11:18 AM</span></div>
+                    <div class="slack-text">biggun</div>
+                  </div>
+                </div>
+
+                <!-- What SHOULD happen next -->
+                <div class="should-happen">
+                  <div class="should-happen-label">What Orby will automate</div>
+                  <div class="slack-msg" style="border:none;padding-bottom:0">
+                    <div class="slack-avatar ai">AI</div>
+                    <div class="slack-body">
+                      <div class="slack-name">Orby AI <span class="time">Auto-posted after 3Ps detected</span></div>
+                      <div class="slack-text">
+                        <strong>Company Brief — BAE Systems</strong><br>
+                        Revenue $33.6B · 107,400 employees · UK defence & aerospace. Top initiatives: digital transformation programme across supply chain, £1.3B tech modernisation spend committed through 2027, major ERP consolidation underway.<br><br>
+                        <strong>Prospect Brief — Andy Webster</strong><br>
+                        Indirect Procurement, Corporate Air Travel & Finance Director. 8+ years at BAE. Previously at Rolls-Royce in procurement systems. Connected to 3 people in your network.<br><br>
+                        <strong>Suggested Meeting Approach</strong><br>
+                        1. Open: Reference their ERP upgrade investment — show you understand the strategic context<br>
+                        2. Probe: "How are approval workflows currently handled when a request crosses from ServiceNow into Ivalua?"<br>
+                        3. Demo: Show the cross-system workflow connector — this directly maps to their "connective workflow" language<br>
+                        4. Close: Propose a 2-week pilot on one procurement workflow to prove time-to-value
+                      </div>
+                    </div>
+                  </div>
+                  <div class="slack-msg" style="border:none;padding-top:4px">
+                    <div class="slack-avatar ae">RL</div>
+                    <div class="slack-body">
+                      <div class="slack-name" style="color:var(--text-faint)">Rabia Lukas <span class="time">AE posts prep within 48hrs</span></div>
+                      <div class="slack-text" style="color:var(--text-faint);font-style:italic">
+                        AE reviews AI brief, adds their meeting plan and agenda to the thread. If no response by 24h, Orby sends a private DM nudge.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 2: Jonathan → Engie — has excellent 3Ps, no AE prep -->
+          <tr onclick="toggleRow('r2')">
+            <td>
+              <div class="meeting-info">
+                <span class="meeting-prospect">Arnaud Spinelli-Audouin</span>
+                <span class="meeting-company">Engie Home Services · FTE 4,672</span>
+                <span class="meeting-meta">Apr 22 · Phone · Outbound</span>
+              </div>
+            </td>
+            <td><div class="rep-cell"><span class="rep-name">Jonathan Badibanga</span><span class="rep-segment">EMEA</span></div></td>
+            <td><div class="rep-cell"><span class="rep-name">Antoine Bonerandi</span></div></td>
+            <td>
+              <div class="three-ps">
+                <span class="p-tag">Process</span>
+                <span class="p-tag">Pain</span>
+                <span class="p-tag">Priorities</span>
+              </div>
+            </td>
+            <td style="text-align:center">
+              <span class="status-pill overdue"><span class="dot"></span> Overdue</span>
+              <div class="time-label">44h · No AE prep</div>
+            </td>
+          </tr>
+          <tr class="expand-row" id="r2">
+            <td colspan="5">
+              <div class="expand-content">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:10px">Thread from #new-emea-bdr-pipeline</div>
+                <div class="slack-msg">
+                  <div class="slack-avatar bdr">JB</div>
+                  <div class="slack-body">
+                    <div class="slack-name">Jonathan Badibanga <span class="time">Apr 8, 5:48 PM</span></div>
+                    <div class="slack-text">
+                      <strong>Process</strong><br>
+                      Single procurement tool: Oracle Procurement with simplified workflows (post carve-out). Centralised intake with validation workflows by thresholds. Use of distributors for procurement.<br><br>
+                      <strong>Pain</strong><br>
+                      Current CLM setup not user-friendly (previously SAP Ariba but went away because of poor UX). Lack of simple, accessible contract visibility for operational users (technicians). Contracts too complex to navigate — they extract key info manually.<br><br>
+                      <strong>Priorities</strong><br>
+                      Find a simple, user-friendly CLM tool. Improve contract visibility for non-procurement users. Use AI to simplify contract management.<br><br>
+                      <strong>NB:</strong> <em>ENGIE Home Services is divesting to Latour Capital on June 30, 2026. Transitioning from subsidiary to standalone PE-backed company. CLM is clearly the entry point — that's where he expressed genuine pain.</em>
+                    </div>
+                  </div>
+                </div>
+                <div class="slack-msg">
+                  <div class="slack-avatar hype">TP</div>
+                  <div class="slack-body">
+                    <div class="slack-name">Theo Parker <span class="time">7:32 PM</span></div>
+                    <div class="slack-text">Great work lad!</div>
+                  </div>
+                </div>
+                <div class="no-ae-banner">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                  <span>Antoine Bonerandi has not responded. 44 hours since 3Ps were posted. Meeting is Apr 22.</span>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 3: Maggie → pladis — no 3Ps -->
+          <tr>
+            <td>
+              <div class="meeting-info">
+                <span class="meeting-prospect">Senior Procurement Manager</span>
+                <span class="meeting-company">pladis Global · FTE 16,000</span>
+                <span class="meeting-meta">Apr 9 · LinkedIn · Outbound</span>
+              </div>
+            </td>
+            <td><div class="rep-cell"><span class="rep-name">Maggie Moran</span><span class="rep-segment">EMEA Key</span></div></td>
+            <td><div class="rep-cell"><span class="rep-name">Jen Sutton</span></div></td>
+            <td>
+              <div class="three-ps">
+                <span class="p-tag empty">No 3Ps</span>
+              </div>
+            </td>
+            <td style="text-align:center">
+              <span class="status-pill no-3ps">Blocked</span>
+              <div class="time-label">Waiting on BDR</div>
+            </td>
+          </tr>
+
+          <!-- Row 4: Maggie → Greencore — no 3Ps -->
+          <tr>
+            <td>
+              <div class="meeting-info">
+                <span class="meeting-prospect">Senior Procurement Controller</span>
+                <span class="meeting-company">Greencore · FTE 13,300</span>
+                <span class="meeting-meta">May 25 · Phone · Outbound</span>
+              </div>
+            </td>
+            <td><div class="rep-cell"><span class="rep-name">Maggie Moran</span><span class="rep-segment">EMEA Key</span></div></td>
+            <td><div class="rep-cell"><span class="rep-name">Jen Sutton</span></div></td>
+            <td>
+              <div class="three-ps">
+                <span class="p-tag empty">No 3Ps</span>
+              </div>
+            </td>
+            <td style="text-align:center">
+              <span class="status-pill no-3ps">Blocked</span>
+              <div class="time-label">Waiting on BDR</div>
+            </td>
+          </tr>
+
+          <!-- Row 5: Adriano → adidas — no 3Ps -->
+          <tr>
+            <td>
+              <div class="meeting-info">
+                <span class="meeting-prospect">Senior Manager Sourcing IT Software</span>
+                <span class="meeting-company">adidas · FTE 51,561</span>
+                <span class="meeting-meta">Apr 9 · Phone · Outbound</span>
+              </div>
+            </td>
+            <td><div class="rep-cell"><span class="rep-name">Adriano Minotti</span><span class="rep-segment">EMEA</span></div></td>
+            <td><div class="rep-cell"><span class="rep-name">Héloïse Szabo</span></div></td>
+            <td>
+              <div class="three-ps">
+                <span class="p-tag empty">No 3Ps</span>
+              </div>
+            </td>
+            <td style="text-align:center">
+              <span class="status-pill no-3ps">Blocked</span>
+              <div class="time-label">Waiting on BDR</div>
+            </td>
+          </tr>
+
+          <!-- Row 6: Aish → Flatpay — no 3Ps -->
+          <tr>
+            <td>
+              <div class="meeting-info">
+                <span class="meeting-prospect">Lead Financial Controller</span>
+                <span class="meeting-company">Flatpay · FTE 1,087</span>
+                <span class="meeting-meta">Apr 14 · Phone · Outbound</span>
+              </div>
+            </td>
+            <td><div class="rep-cell"><span class="rep-name">Aish Ali</span><span class="rep-segment">EMEA Commercial</span></div></td>
+            <td><div class="rep-cell"><span class="rep-name">Jamie Kutner</span></div></td>
+            <td>
+              <div class="three-ps">
+                <span class="p-tag empty">No 3Ps</span>
+              </div>
+            </td>
+            <td style="text-align:center">
+              <span class="status-pill no-3ps">Blocked</span>
+              <div class="time-label">Waiting on BDR</div>
+            </td>
+          </tr>
+
+          <!-- Row 7: Ashley → LME — no 3Ps -->
+          <tr>
+            <td>
+              <div class="meeting-info">
+                <span class="meeting-prospect">Procurement & Vendor Management</span>
+                <span class="meeting-company">London Metal Exchange · FTE 355</span>
+                <span class="meeting-meta">Apr 14 · Zoom · Inbound</span>
+              </div>
+            </td>
+            <td><div class="rep-cell"><span class="rep-name">Ashley Brooker</span><span class="rep-segment">EMEA</span></div></td>
+            <td><div class="rep-cell"><span class="rep-name">Seb Eggeling</span></div></td>
+            <td>
+              <div class="three-ps">
+                <span class="p-tag empty">No 3Ps</span>
+              </div>
+            </td>
+            <td style="text-align:center">
+              <span class="status-pill no-3ps">Blocked</span>
+              <div class="time-label">Waiting on BDR</div>
+            </td>
+          </tr>
+
+          <!-- Row 8: Jonathan → Amadeus — no explicit 3Ps  -->
+          <tr>
+            <td>
+              <div class="meeting-info">
+                <span class="meeting-prospect">Category Purchasing Manager</span>
+                <span class="meeting-company">Amadeus · FTE 20,643</span>
+                <span class="meeting-meta">May 17 · Phone · Outbound</span>
+              </div>
+            </td>
+            <td><div class="rep-cell"><span class="rep-name">Jonathan Badibanga</span><span class="rep-segment">EMEA</span></div></td>
+            <td><div class="rep-cell"><span class="rep-name">Antoine Bonerandi</span></div></td>
+            <td>
+              <div class="three-ps">
+                <span class="p-tag empty">No 3Ps</span>
+              </div>
+            </td>
+            <td style="text-align:center">
+              <span class="status-pill pending"><span class="dot"></span> Pending</span>
+              <div class="time-label">Meeting far out</div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Sidebar -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- AE Prep Compliance -->
+      <div class="sidebar-card">
+        <div class="sidebar-header">
+          <h3>AE Prep Compliance</h3>
+          <p>Prep posted within 48hrs of meeting alert</p>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Rabia Lukas</span>
+            <span class="ae-stats">3 meetings · 0 prepped</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">0%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Antoine Bonerandi</span>
+            <span class="ae-stats">4 meetings · 0 prepped</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">0%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Jen Sutton</span>
+            <span class="ae-stats">3 meetings · 0 prepped</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">0%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Héloïse Szabo</span>
+            <span class="ae-stats">2 meetings · 1 prepped</span>
+          </div>
+          <span class="ae-rate" style="color:var(--amber)">50%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Jamie Kutner</span>
+            <span class="ae-stats">3 meetings · 1 prepped</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">33%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Seb Eggeling</span>
+            <span class="ae-stats">2 meetings · 0 prepped</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">0%</span>
+        </div>
+      </div>
+
+      <!-- BDR 3Ps Compliance -->
+      <div class="sidebar-card">
+        <div class="sidebar-header">
+          <h3>BDR 3 Ps Compliance</h3>
+          <p>Posted Process, Pain, Priorities in thread</p>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Dan Watson</span>
+            <span class="ae-stats">2 meetings</span>
+          </div>
+          <span class="ae-rate" style="color:var(--green)">100%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Jonathan Badibanga</span>
+            <span class="ae-stats">4 meetings</span>
+          </div>
+          <span class="ae-rate" style="color:var(--amber)">50%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Ashley Brooker</span>
+            <span class="ae-stats">3 meetings</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">0%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Maggie Moran</span>
+            <span class="ae-stats">3 meetings</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">0%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Adriano Minotti</span>
+            <span class="ae-stats">2 meetings</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">0%</span>
+        </div>
+        <div class="ae-row">
+          <div class="ae-info">
+            <span class="ae-name">Aish Ali</span>
+            <span class="ae-stats">2 meetings</span>
+          </div>
+          <span class="ae-rate" style="color:var(--red)">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insights -->
+  <div class="section-label">Conversion Impact</div>
+  <div class="insights-strip">
+    <div class="insight-card">
+      <h4>S0 → S1 Conversion</h4>
+      <div class="insight-item">
+        <span class="insight-label">With AE prep</span>
+        <span class="insight-value" style="color:var(--green)">58%</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-label">Without AE prep</span>
+        <span class="insight-value" style="color:var(--red)">27%</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-label">AE-sourced (benchmark)</span>
+        <span class="insight-value" style="color:var(--text-muted)">61%</span>
+      </div>
+    </div>
+    <div class="insight-card">
+      <h4>Show Rate</h4>
+      <div class="insight-item">
+        <span class="insight-label">With AE prep</span>
+        <span class="insight-value" style="color:var(--green)">82%</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-label">Without AE prep</span>
+        <span class="insight-value" style="color:var(--red)">44%</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-label">With agenda sent to prospect</span>
+        <span class="insight-value" style="color:var(--green)">91%</span>
+      </div>
+    </div>
+    <div class="insight-card">
+      <h4>This Month's Gap</h4>
+      <div class="insight-item">
+        <span class="insight-label">Meetings with full handoff</span>
+        <span class="insight-value" style="color:var(--green)">2</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-label">Meetings with no AE prep</span>
+        <span class="insight-value" style="color:var(--red)">16</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-label">Estimated lost S1s</span>
+        <span class="insight-value" style="color:var(--red)">~5</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Automation Flow -->
+  <div class="auto-card">
+    <h3>Automation Pipeline — Powered by Orby</h3>
+    <p>Fully automated via Claude scheduled tasks. Monitors #new-emea-bdr-pipeline, generates AI briefs, nudges AEs, and logs everything to this dashboard.</p>
+    <div class="auto-steps">
+      <div class="auto-step">
+        <div class="step-icon slack">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <span class="step-label">Monitor Channel</span>
+        <span class="step-desc">Detect new meeting alerts in #new-emea-bdr-pipeline</span>
+        <span class="auto-badge">Every 15 min</span>
+      </div>
+      <div class="auto-step">
+        <div class="step-icon check">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg>
+        </div>
+        <span class="step-label">Parse 3 Ps</span>
+        <span class="step-desc">Detect Process, Pain, Priorities in thread replies</span>
+        <span class="auto-badge">Automatic</span>
+      </div>
+      <div class="auto-step">
+        <div class="step-icon ai">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/></svg>
+        </div>
+        <span class="step-label">AI Research Brief</span>
+        <span class="step-desc">Claude researches company + person, posts meeting prep in thread</span>
+        <span class="auto-badge">Automatic</span>
+      </div>
+      <div class="auto-step">
+        <div class="step-icon alert">⏰</div>
+        <span class="step-label">AE Nudge</span>
+        <span class="step-desc">Private DM to AE at 24h and 40h if no prep posted</span>
+        <span class="auto-badge">Automatic</span>
+      </div>
+      <div class="auto-step">
+        <div class="step-icon track">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <span class="step-label">Dashboard</span>
+        <span class="step-desc">Log compliance, correlate with meeting outcomes, surface in Orby</span>
+        <span class="auto-badge">Real-time</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+function toggleRow(id) {
+  document.getElementById(id)?.classList.toggle('open');
+}
+</script>
+</body>
+</html>
